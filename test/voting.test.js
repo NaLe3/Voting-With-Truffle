@@ -67,5 +67,33 @@ contract("Voting tests", accounts => {
     });
   });
 
+  //Testing functionality for proposal registration
+  describe("Adding proposals", () => {
+    before(async () => {
+        votingInstance = await Voting.new({ from: owner });
+        for (n = 1; n < 4; n ++) {
+            await votingInstance.addVoter(accounts[n], { from: owner });
+        }
+    });
+
+    it("Should add a proposal", async () => {
+        await votingInstance.startProposalsRegistering({ from: owner });
+        await votingInstance.addProposal("This is my proposal", { from: user1 });
+        expect(await votingInstance.workflowStatus()).to.bignumber.equal(new BN(1));
+    });
+
+    it("Should emit an event after adding a proposal", async () => {
+        expectEvent(await votingInstance.addProposal("This is my proposal", { from: user3 }), "ProposalRegistered", { proposalId: new BN(1) });
+    });
+    
+    it("Should revert adding an empty proposal", async () => {
+        await expectRevert(votingInstance.addProposal("", { from: user3 }), "Vous ne pouvez pas ne rien proposer");
+    });
+
+    it("Should revert adding proposal with unknown address", async () => {
+        await expectRevert(votingInstance.addProposal("This is my proposal", { from: user4 }), "You're not a voter");
+    });
+  });
+
 
 });
