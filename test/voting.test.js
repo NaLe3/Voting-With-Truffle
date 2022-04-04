@@ -107,12 +107,53 @@ contract("Voting tests", accounts => {
     });
 
     it("Should get a proposal", async () => {
-      proposalData = await votingInstance.getOneProposal.call(0, { from: user2 })
-      expect(proposalData.description).to.equal("This is my proposal");
+      proposal = await votingInstance.getOneProposal.call(0, { from: user2 })
+      expect(proposal.description).to.equal("This is my proposal");
     });
 
     it("Should revert getting proposal from unknown address", async () => {
       await expectRevert(votingInstance.getOneProposal(1, { from: user4 }), "You're not a voter");
+    });
+  });
+
+  //Testing functionality for setting vote 
+  describe("Setting vote", () => {
+    before(async () => {
+      votingInstance = await Voting.new({ from: owner });
+      for (n = 1; n <= 4; n ++) {
+          await votingInstance.addVoter(accounts[n], { from: owner });
+      }
+      await votingInstance.startProposalsRegistering({ from: owner });
+      for (n = 1; n <= 3; n ++) {
+          await votingInstance.addProposal("proposal-${n}", { from: accounts[n] })
+      }
+      await votingInstance.endProposalsRegistering({ from: owner });
+    });
+
+    it("Should revert if voting session have not started yet", async () => {
+      await expectRevert(votingInstance.setVote(0, { from: user2 }), "Voting session havent started yet");
+    });
+
+    it("Should emit an event when the voting session started", async () => {
+      expectEvent(await votingInstance.startVotingSession({ from: owner }), "WorkflowStatusChange", { previousStatus: new BN(2), newStatus: new BN(3) });
+    });
+
+    it("Should revert if voter is voting more than once", async () => {
+      await votingInstance.setVote(2, { from: user1 })
+      await expectRevert(votingInstance.setVote(1, { from: user1 }), "You have already voted");
+    });
+
+    it("Should increment vote count after voting for a proposal", async () => {
+      proposal = await votingInstance.getOneProposal.call(1, { from: user3 })
+      expect(new BN(proposal.voteCount)).to.bignumber.equal(new BN(0));
+
+      await votingInstance.setVote(1, { from: user3 })
+      proposal = await votingInstance.getOneProposal.call(1, { from: user3 })
+      expect(new BN(proposal.voteCount)).to.bignumber.equal(new BN(1));
+    });
+
+    it("Should revert voting for invalid proposal id", async () => {
+      await expectRevert(votingInstance.setVote(99, { from: user4 }), "Proposal not found");
     });
   });
 
