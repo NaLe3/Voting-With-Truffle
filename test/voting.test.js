@@ -10,10 +10,14 @@ contract("Voting tests", accounts => {
   const user4 = accounts[4];
   let votingInstance;
 
-  describe("Testing each functionality", () => {
-    
+  describe("Testing functionality", () => {
+
     //Testing functionality to add voter
     describe("Adding voters", () => {
+
+      before(async () => {
+        votingInstance = await Voting.new({ from: owner });
+      });
 
       it("Should start at first workflow status", async () => {
         expect(await votingInstance.workflowStatus()).to.bignumber.equal(new BN(0));
@@ -49,7 +53,7 @@ contract("Voting tests", accounts => {
     //Testing functionality to get voter
     describe("Getting a voter", () => {
       before(async () => {
-        
+        votingInstance = await Voting.new({ from: owner });
         for (n = 1; n <= 2; n ++) {
           await votingInstance.addVoter(accounts[n], { from: owner });
         }
@@ -68,7 +72,7 @@ contract("Voting tests", accounts => {
     //Testing functionality for proposal registration
     describe("Adding proposals", () => {
       before(async () => {
-        
+        votingInstance = await Voting.new({ from: owner });
         for (n = 1; n < 4; n ++) {
             await votingInstance.addVoter(accounts[n], { from: owner });
         }
@@ -96,7 +100,7 @@ contract("Voting tests", accounts => {
     //Testing functionality for getting proposal 
     describe("Getting a proposal", () => {
       before(async () => {
-        
+        votingInstance = await Voting.new({ from: owner });
         for (n = 1; n <= 3; n ++) {
           await votingInstance.addVoter(accounts[n], { from: owner });
         }
@@ -117,7 +121,7 @@ contract("Voting tests", accounts => {
     //Testing functionality for setting vote 
     describe("Setting vote", () => {
       before(async () => {
-        
+        votingInstance = await Voting.new({ from: owner });
         for (n = 1; n <= 4; n ++) {
             await votingInstance.addVoter(accounts[n], { from: owner });
         }
@@ -159,7 +163,7 @@ contract("Voting tests", accounts => {
     describe("Tallying votes", () => {
       
       beforeEach(async () => {
-        
+        votingInstance = await Voting.new({ from: owner });
         for (n = 1; n <= 5; n ++) {
             await votingInstance.addVoter(accounts[n], { from: owner });
         }
@@ -197,6 +201,7 @@ contract("Voting tests", accounts => {
         await expectRevert(votingInstance.tallyVotes({ from: user1 }), "Ownable: caller is not the owner.");
       });
     });
+
   });
 
 });
