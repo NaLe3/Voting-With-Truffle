@@ -157,4 +157,47 @@ contract("Voting tests", accounts => {
     });
   });
 
+  //Testing functionality for votes tallying
+  describe("Tallying votes", () => {
+    
+    beforeEach(async () => {
+      votingInstance = await Voting.new({ from: owner });
+      for (n = 1; n <= 5; n ++) {
+          await votingInstance.addVoter(accounts[n], { from: owner });
+      }
+      await votingInstance.startProposalsRegistering({ from: owner });
+      for (n = 1; n <= 5; n ++) {
+          await votingInstance.addProposal("proposal-${n}", { from: accounts[n] })
+      }
+      await votingInstance.endProposalsRegistering({ from: owner });
+      await votingInstance.startVotingSession({ from: owner });
+      for (n = 1; n <= 5; n ++) {
+          await votingInstance.setVote(n % 2, { from: accounts[n] })
+    }
+    });
+
+    it("Should revert tally if voting session has not ended", async () => {
+      await expectRevert(votingInstance.tallyVotes({ from: owner }), "Current status is not voting session ended");
+    });
+
+    it("Should tally votes", async () => {
+      await votingInstance.endVotingSession({ from: owner });
+      expect(await votingInstance.workflowStatus()).to.bignumber.equal(new BN(4));
+      expect(await votingInstance.winningProposalID()).to.bignumber.equal(new BN(0));
+
+      await votingInstance.tallyVotes({ from: owner });
+      expect(await votingInstance.winningProposalID()).to.bignumber.equal(new BN(1));
+      expect(await votingInstance.workflowStatus()).to.bignumber.equal(new BN(5));
+    });
+
+    it("Should emit an event after tally votes", async () => {
+      await votingInstance.endVotingSession({ from: owner });
+      expectEvent(await votingInstance.tallyVotes({ from: owner }), "WorkflowStatusChange", { previousStatus: new BN(4), newStatus: new BN(5) });
+    });
+
+    it("Should revert tallying votes from a voter", async () => {
+      await expectRevert(votingInstance.tallyVotes({ from: user1 }), "Ownable: caller is not the owner.");
+    });
+  });
+
 });
