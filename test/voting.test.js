@@ -8,16 +8,14 @@ contract("Voting tests", accounts => {
   const user2 = accounts[2];
   const user3 = accounts[3];
   const user4 = accounts[4];
-  const user5 = accounts[5];
   let votingInstance;
-
-  // Create a new instance of voting contract before all the tests in a describe
-  before(async () => {
-    votingInstance = await Voting.new({ from: owner });
-  });
 
   //Testing functionality to add voter
   describe("Adding voters", () => {
+
+    before(async () => {
+      votingInstance = await Voting.new({ from: owner });
+    });
 
     it("Should start at first workflow status", async () => {
       expect(await votingInstance.workflowStatus()).to.bignumber.equal(new BN(0));
@@ -49,5 +47,25 @@ contract("Voting tests", accounts => {
         await expectRevert(votingInstance.addVoter(user1, { from: user2 }), "Ownable: caller is not the owner.");
     });
   });
+
+  //Testing functionality to get voter
+  describe("Getting a voter", () => {
+    before(async () => {
+      votingInstance = await Voting.new({ from: owner });
+      for (n = 1; n <= 2; n ++) {
+        await votingInstance.addVoter(accounts[n], { from: owner });
+      }
+    });
+
+    it("Should get a voter", async () => {
+      const Voter2 = await votingInstance.getVoter.call(user2, { from: user1 });
+      expect(Voter2.isRegistered).to.be.equal(true);
+    });
+
+    it("Should revert getting a voter from unregistered address", async () => {
+      await expectRevert(votingInstance.getVoter(user1, { from: user3 }), "You're not a voter");
+    });
+  });
+
 
 });
